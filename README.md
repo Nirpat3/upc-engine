@@ -114,3 +114,5 @@ upc-engine clear-active-profile <systemId>
 - Bookland/ISBN and EAN-2/EAN-5 supplement handling are represented in the
   research/design but not yet implemented as pipeline primitives (out of
   scope for v1 per `DEFINE.md`).
+
+<!-- mirror-automation-test 2026-08-23T17:22:08Z -->
