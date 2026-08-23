@@ -1,6 +1,31 @@
 #!/usr/bin/env node
 // UPC Engine CLI. All output JSON so it's scriptable; exit code 1 on any
 // item-level failure in batch mode so callers can detect partial failure.
+import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+// Optional .env loader: if a .env file exists next to package.json and the
+// corresponding env var isn't already set in the real environment, load it.
+// Purely additive/opt-in -- absence of .env changes nothing (see README
+// "Persistence is opt-in"). Real env vars always win over .env contents.
+function loadDotEnvIfPresent() {
+  const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+  const envPath = path.join(root, '.env');
+  if (!existsSync(envPath)) return;
+  const contents = readFileSync(envPath, 'utf8');
+  for (const line of contents.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    const value = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, '');
+    if (key && !(key in process.env)) process.env[key] = value;
+  }
+}
+loadDotEnvIfPresent();
+
 import { identify, toCanonical } from '../src/core.mjs';
 import { applyProfile, reverseProfile, convertToProfile } from '../src/pipeline.mjs';
 import { convertBatch, identifyBatch } from '../src/batch.mjs';
@@ -148,7 +173,13 @@ try {
       break;
     }
     case 'db-status': {
-      out({ configured: isDbConfigured() });
+      const configured = isDbConfigured();
+      out({
+        configured,
+        message: configured
+          ? 'Supabase configured — db-record/db-get/db-list are live.'
+          : 'Supabase NOT configured (optional). The engine works fully without it. To enable persistence: copy .env.example to .env, fill in SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY, run db/schema.sql once in the Supabase SQL editor, then re-run db-status.',
+      });
       break;
     }
     case 'db-record': {

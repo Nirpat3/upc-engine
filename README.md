@@ -12,6 +12,15 @@ See `DEFINE.md` for the problem statement and acceptance criteria, and
 `RESEARCH.md` for the researched catalog of scanner-configurable variables
 this engine models.
 
+**Persistence is opt-in.** Identify, convert, decompose, detect, and
+profile management all work standalone with zero setup and zero external
+dependency. If you also want a durable record of every UPC that runs
+through the engine (structured by brand, prefix, decomposition — see "UPC
+database" below), copy `.env.example` to `.env` and configure a Supabase
+project. Skip that step entirely and the engine still works fully; only
+the `db-*` commands need it, and they fail with a clear message (not
+silently) if it's missing.
+
 ## Install / run
 
 ```
