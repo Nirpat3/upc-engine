@@ -1,0 +1,60 @@
+{
+  "raw_upc_a_full": {
+    "description": "Pass-through: full 12-digit UPC-A, no changes. Default/reference profile.",
+    "expandToUpcA": true
+  },
+  "upc_a_no_check_digit": {
+    "description": "POS strips the check digit; scanner/import expects 11 digits.",
+    "expandToUpcA": true,
+    "stripCheckDigit": true
+  },
+  "upc_a_no_leading_digit": {
+    "description": "Scanner strips the leading number-system digit; expects 11 digits (system digit + payload minus check... see stripLeadingDigit).",
+    "expandToUpcA": true,
+    "stripLeadingDigit": true
+  },
+  "upc_a_no_leading_no_check": {
+    "description": "Both leading digit and check digit stripped; 10-digit core payload only.",
+    "expandToUpcA": true,
+    "stripLeadingDigit": true,
+    "stripCheckDigit": true
+  },
+  "upc_a_as_ean13": {
+    "description": "Scanner/POS always emits EAN-13 shape (prepend 0 to UPC-A).",
+    "expandToUpcA": true,
+    "prependZeroForEan13": true
+  },
+  "upc_a_padded_14": {
+    "description": "Zero-padded to 14 chars to match a fixed-width GTIN-14 storage column.",
+    "expandToUpcA": true,
+    "padWidth": 14
+  },
+  "upc_e_full": {
+    "description": "UPC-E compressed form with leading number-system digit and check digit (8 digits total). Falls back to full UPC-A when not compressible.",
+    "compressToUpcE": true,
+    "onNotCompressible": "lenient"
+  },
+  "upc_e_6_digit_core": {
+    "description": "Bare 6-digit UPC-E core only, no leading digit, no check digit — the classic 'UPC-E' shape printed on packaging.",
+    "compressToUpcE": true,
+    "stripLeadingDigit": true,
+    "stripCheckDigit": true,
+    "onNotCompressible": "lenient"
+  },
+  "upc_e_7_digit_with_system": {
+    "description": "7-digit UPC-E: number system + 6-digit core, no check digit.",
+    "compressToUpcE": true,
+    "stripCheckDigit": true,
+    "onNotCompressible": "lenient"
+  },
+  "upc_e_expand_to_upc_a": {
+    "description": "Scanner is configured to expand any scanned UPC-E to full UPC-A(12) on transmit.",
+    "expandToUpcA": true
+  },
+  "symbology_prefixed_ean13": {
+    "description": "Scanner prepends AIM symbology identifier ']E0' and emits EAN-13 shape.",
+    "expandToUpcA": true,
+    "prependZeroForEan13": true,
+    "symbologyPrefix": "]E0"
+  }
+}

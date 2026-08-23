@@ -1,0 +1,16 @@
+{
+  "name": "upc-engine",
+  "version": "0.1.0",
+  "description": "Identify, normalize, and reformat UPC-A/UPC-E barcodes per POS scanner profile.",
+  "type": "module",
+  "bin": {
+    "upc-engine": "./bin/upc-engine.mjs"
+  },
+  "main": "src/index.mjs",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
