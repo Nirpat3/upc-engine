@@ -64,7 +64,45 @@ using the primitives in `src/pipeline.mjs`'s `Profile` typedef:
 `prependZeroForEan13`, `padWidth`, `truncateToWidth`, `symbologyPrefix`,
 `onNotCompressible`.
 
+## Auto-detection & "lock it in" (`src/detect.mjs`, `src/session.mjs`)
+
+Two complementary ways to figure out which built-in profile a given
+POS/scanner is actually configured with, without you having to know its
+vendor menu settings up front:
+
+- **Pair-based** (`detectProfileFromPairs`) — you know the canonical UPC for
+  an item AND the raw code the scanner emitted for it (e.g. from a manual
+  test scan against a known SKU). Give it 2+ `{canonical, scanned}` pairs
+  across different UPC shapes (one UPC-E-compressible, one not) and it tests
+  every profile in the catalog, returning the single profile that produces
+  every observed output — or, if genuinely ambiguous (some profiles are
+  identical by definition, e.g. `raw_upc_a_full` / `upc_e_expand_to_upc_a`),
+  the full candidate set instead of a silent guess.
+- **Database-lookup** (`detectProfileFromDatabase`) — you only have raw
+  scanned codes and the set of canonical UPCs already known to exist in the
+  system (no direct pairing). It reverses each scanned code under every
+  profile and scores which profile's reversed result actually exists in the
+  known set; more sample codes narrow the candidate set the same way.
+
+Once resolved, `setActiveProfile(systemId, profileName)` persists the
+binding (JSON file store by default, swappable via `storePath`) so later
+`convert`/`convertBatch` calls for that system/lane/store don't need to
+re-detect — `getActiveProfile(systemId)` reads it back, `listActiveProfiles`
+enumerates all bound systems, `clearActiveProfile` un-binds one.
+
+CLI:
+
+```
+upc-engine detect-from-pairs                       # [{canonical,scanned}] as JSON on stdin
+upc-engine detect-from-database --known upcs.json  # scanned codes as JSON on stdin
+upc-engine set-active-profile <systemId> <profile>
+upc-engine get-active-profile <systemId>
+upc-engine list-active-profiles
+upc-engine clear-active-profile <systemId>
+```
+
 ## Known v1 limitations
+
 
 - `stripLeadingDigit` reversal assumes number system `0` when reconstructing
   (documented in `RESEARCH.md`); this is correct for the vast majority of US

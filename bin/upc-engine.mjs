@@ -5,6 +5,8 @@ import { identify, toCanonical } from '../src/core.mjs';
 import { applyProfile, reverseProfile, convertToProfile } from '../src/pipeline.mjs';
 import { convertBatch, identifyBatch } from '../src/batch.mjs';
 import { listProfiles, getProfile } from '../src/profiles.mjs';
+import { detectProfileFromPairs, detectProfileFromDatabase } from '../src/detect.mjs';
+import { setActiveProfile, getActiveProfile, listActiveProfiles, clearActiveProfile } from '../src/session.mjs';
 
 function out(obj) {
   process.stdout.write(JSON.stringify(obj, null, 2) + '\n');
@@ -84,6 +86,51 @@ try {
       out(listProfiles());
       break;
     }
+    case 'detect-from-pairs': {
+      // stdin: JSON array of {canonical, scanned}
+      const stdin = await readStdin();
+      const pairs = JSON.parse(stdin);
+      const result = detectProfileFromPairs(pairs);
+      out(result);
+      if (!result.resolved) process.exitCode = 1;
+      break;
+    }
+    case 'detect-from-database': {
+      // args: --known <path-to-json-array-of-canonical-upcs>; stdin: JSON array of scanned codes
+      const knownIdx = args.indexOf('--known');
+      if (knownIdx < 0) fail('usage: upc-engine detect-from-database --known <file.json>  (scanned codes as JSON array on stdin)');
+      const { readFileSync } = await import('node:fs');
+      const known = JSON.parse(readFileSync(args[knownIdx + 1], 'utf8'));
+      const stdin = await readStdin();
+      const scannedCodes = JSON.parse(stdin);
+      const result = detectProfileFromDatabase(scannedCodes, known);
+      out(result);
+      if (!result.resolved) process.exitCode = 1;
+      break;
+    }
+    case 'set-active-profile': {
+      const [systemId, profileName] = args;
+      if (!systemId || !profileName) fail('usage: upc-engine set-active-profile <systemId> <profile>');
+      out(setActiveProfile(systemId, profileName));
+      break;
+    }
+    case 'get-active-profile': {
+      const [systemId] = args;
+      if (!systemId) fail('usage: upc-engine get-active-profile <systemId>');
+      out(getActiveProfile(systemId));
+      break;
+    }
+    case 'list-active-profiles': {
+      out(listActiveProfiles());
+      break;
+    }
+    case 'clear-active-profile': {
+      const [systemId] = args;
+      if (!systemId) fail('usage: upc-engine clear-active-profile <systemId>');
+      clearActiveProfile(systemId);
+      out({ cleared: systemId });
+      break;
+    }
     default:
       out({
         usage: [
@@ -95,6 +142,12 @@ try {
           'upc-engine batch-convert --to <profile> [--from <profile>]  (codes as JSON array on stdin)',
           'upc-engine batch-identify  (codes as JSON array on stdin)',
           'upc-engine list-profiles',
+          'upc-engine detect-from-pairs  ([{canonical,scanned}] as JSON array on stdin)',
+          'upc-engine detect-from-database --known <file.json>  (scanned codes as JSON array on stdin)',
+          'upc-engine set-active-profile <systemId> <profile>',
+          'upc-engine get-active-profile <systemId>',
+          'upc-engine list-active-profiles',
+          'upc-engine clear-active-profile <systemId>',
         ],
       });
   }
