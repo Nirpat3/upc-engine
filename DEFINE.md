@@ -2,16 +2,47 @@
 
 ## Problem
 
-US retail POS scanners are configured (by the scanner vendor's programming
-barcode/menu) to expect UPC-A / UPC-E in specific transmitted shapes. The same
-physical barcode can be scanned correctly by one POS and rejected/misread by
-another, because each scanner's config independently controls:
+US and Canadian retail POS scanners are configured (by the scanner vendor's
+programming barcode/menu) to expect UPC-A / UPC-E in specific transmitted
+shapes. The same physical barcode can be scanned correctly by one POS and
+rejected/misread by another, because each scanner's config independently
+controls:
 
 - whether the leading "number system" digit is transmitted
 - whether the trailing check digit is transmitted
 - whether UPC-E is expanded to UPC-A (or vice versa, compressed)
 - whether the code is zero-padded to a wider width (e.g. UPC-A -> EAN-13)
 - (see RESEARCH.md for the full researched variable catalog)
+
+### Regional scope (verified against GS1's own country-prefix table)
+
+"UPC-A"/"UPC-E" as a distinct 12-digit / compressed-6-digit symbology is a
+**US and Canada** convention — GS1 US administers prefixes `000–139`, and
+GS1 Canada is assigned prefixes `754–755`. Both are UPC-A compatible: a
+Canadian GS1 prefix decodes with the exact same number-system-digit +
+company-prefix + item-reference + check-digit structure this engine
+implements, so `core.mjs`/`pipeline.mjs`/`decompose.mjs` apply unchanged.
+
+Everywhere else in the Americas — Mexico (750), Central America/Caribbean
+(740–746), and South America (Colombia 770-771, Venezuela 759, Ecuador 786,
+Peru 775, Brazil 789-790, Argentina 778-779, Chile 780, Bolivia 777,
+Uruguay 773, Paraguay 784) — uses standard **EAN-13** with a GS1
+country-member 3-digit prefix, not the UPC-A/UPC-E 12/6-digit shorthand.
+The check-digit algorithm is the same GS1 algorithm (this engine's
+`computeCheckDigit` already handles 13-digit EAN via `toCanonical`'s
+EAN-13-with-leading-zero unwrap for the US/Canada 0-prefix case), but the
+UPC-E *compression* feature and the "number system digit" semantics table
+in `decompose.mjs` are specific to the North American UPC-A numbering
+convention and do not apply to a Latin American EAN-13 code with a
+non-zero 3-digit GS1 prefix.
+
+**Practical implication:** this engine's scanner-profile catalog (leading
+digit strip, UPC-E compress/expand, etc.) targets US/Canada POS hardware
+behavior. A Latin American retailer's EAN-13 codes will canonicalize and
+check-digit-validate correctly, but will never be "UPC-E compressible"
+(compression simply doesn't apply outside the North American numbering
+space) and `decompose.mjs`'s `NUMBER_SYSTEM_MEANINGS` table does not
+describe their leading digits.
 
 We need an engine that:
 1. Identifies the format of any input barcode string (UPC-A/UPC-E/EAN-13,
@@ -56,6 +87,11 @@ We need an engine that:
 
 - GUI. CLI + library only in v1; a thin web/API wrapper can follow once the
   core engine is proven.
-- Non-US symbologies beyond EAN-13/GTIN-14 passthrough (Code128, QR, etc.)
+- Non-North-American numbering: EAN-13 codes using Latin American GS1
+  prefixes (Mexico, Central America, South America — see "Regional scope"
+  above) canonicalize and check-digit-validate via the same GS1 algorithm,
+  but UPC-E compression and the UPC number-system-digit semantics table are
+  US/Canada-specific and do not apply to them.
+- Non-GS1 symbologies beyond EAN-13/GTIN-14 passthrough (Code128, QR, etc.)
 - Live integration into any specific POS (RapidRMS etc.) — that is a follow-on
   once this engine has a stable contract.

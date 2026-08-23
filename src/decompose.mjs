@@ -16,10 +16,24 @@
 //   3. Ships a small, clearly-labeled table of DEFAULT assumed lengths (6, the
 //      most common one for suffix-brands) that callers can override per number
 //      system or per specific prefix.
+//
+// REGIONAL SCOPE (verified against GS1's own country-prefix table, see
+// DEFINE.md "Regional scope"): the number-system-digit table below and the
+// UPC-A/UPC-E 12/6-digit format this whole engine targets are a US and
+// Canada convention (GS1 US 000-139, GS1 Canada 754-755, both UPC-A
+// compatible). Mexico/Central America/South America use standard EAN-13
+// with their own GS1 country prefixes -- decomposeUpcA's check-digit math
+// still applies (same GS1 algorithm), but NUMBER_SYSTEM_MEANINGS below does
+// NOT describe a Latin American EAN-13 code's leading digits, and such
+// codes are never UPC-E-compressible (that's a North-American-only feature).
 
 import { UpcError, computeCheckDigit } from './core.mjs';
 
-/** GS1 number-system digit semantics (from GS1 General Specifications). */
+/**
+ * GS1 number-system digit semantics (US/Canada UPC-A numbering convention
+ * only -- see "REGIONAL SCOPE" above; does not apply to Latin American
+ * EAN-13 country-prefix codes).
+ */
 export const NUMBER_SYSTEM_MEANINGS = {
   '0': 'Standard UPC-A numbering (most grocery/retail items)',
   '1': 'Standard UPC-A numbering (reserved/expansion of NS 0)',

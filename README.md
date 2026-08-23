@@ -2,11 +2,21 @@
 
 Identify, normalize, and reformat UPC-A / UPC-E barcodes to match whatever
 shape a specific POS/scanner is configured to expect — and reverse that
-transform going the other direction. Built for the US retail reality where
-the *same* barcode has to be re-shaped per scanner/POS profile because each
-one is independently configured (leading digit stripped or not, check digit
-stripped or not, UPC-E expanded to UPC-A or not, zero-padded to a fixed
-width, etc.).
+transform going the other direction. Built for the US and Canada retail
+reality where the *same* barcode has to be re-shaped per scanner/POS
+profile because each one is independently configured (leading digit
+stripped or not, check digit stripped or not, UPC-E expanded to UPC-A or
+not, zero-padded to a fixed width, etc.).
+
+**Regional scope:** UPC-A/UPC-E (the 12-digit / compressed-6-digit format
+this engine specializes in) is a US and Canada convention, verified
+against GS1's own country-prefix table (GS1 US: 000-139, GS1 Canada:
+754-755, both UPC-A compatible). Mexico, Central America, and South
+America use standard EAN-13 with their own GS1 country prefixes -- the
+check-digit math is the same GS1 algorithm and canonicalizes/validates
+correctly here, but UPC-E compression and the UPC number-system-digit
+semantics table are North-American-specific and don't apply to those
+codes. See DEFINE.md "Regional scope" for the full prefix breakdown.
 
 See `DEFINE.md` for the problem statement and acceptance criteria, and
 `RESEARCH.md` for the researched catalog of scanner-configurable variables
