@@ -7,6 +7,8 @@ import { convertBatch, identifyBatch } from '../src/batch.mjs';
 import { listProfiles, getProfile } from '../src/profiles.mjs';
 import { detectProfileFromPairs, detectProfileFromDatabase } from '../src/detect.mjs';
 import { setActiveProfile, getActiveProfile, listActiveProfiles, clearActiveProfile } from '../src/session.mjs';
+import { decomposeUpcA, createBrandProfile, NUMBER_SYSTEM_MEANINGS } from '../src/decompose.mjs';
+import { recordUpc, getUpcRecord, listUpcRecords, isDbConfigured } from '../src/db.mjs';
 
 function out(obj) {
   process.stdout.write(JSON.stringify(obj, null, 2) + '\n');
@@ -20,6 +22,7 @@ function fail(message) {
 const [, , cmd, ...args] = process.argv;
 
 try {
+  await (async () => {
   switch (cmd) {
     case 'identify': {
       const [code] = args;
@@ -131,6 +134,70 @@ try {
       out({ cleared: systemId });
       break;
     }
+    case 'decompose': {
+      const [code, prefixLenArg] = args;
+      if (!code) fail('usage: upc-engine decompose <canonicalUpcA12> [companyPrefixLength]');
+      const { canonical, format } = toCanonical(code);
+      if (format !== 'UPC_A_12' || !canonical) fail(`"${code}" is not UPC-A representable`);
+      const opts = prefixLenArg ? { companyPrefixLength: Number(prefixLenArg) } : {};
+      out(decomposeUpcA(canonical, opts));
+      break;
+    }
+    case 'number-systems': {
+      out(NUMBER_SYSTEM_MEANINGS);
+      break;
+    }
+    case 'db-status': {
+      out({ configured: isDbConfigured() });
+      break;
+    }
+    case 'db-record': {
+      // upc-engine db-record <code> [--brand X] [--product Y] [--profile Z] [--prefix-len N]
+      const [code, ...rest] = args;
+      if (!code) fail('usage: upc-engine db-record <code> [--brand X] [--product Y] [--profile Z] [--prefix-len N]');
+      const { canonical, format } = toCanonical(code);
+      if (format !== 'UPC_A_12' || !canonical) fail(`"${code}" is not UPC-A representable`);
+      const getFlag = (name) => {
+        const i = rest.indexOf(`--${name}`);
+        return i >= 0 ? rest[i + 1] : undefined;
+      };
+      try {
+        const result = await recordUpc(canonical, {
+          brandName: getFlag('brand'),
+          productName: getFlag('product'),
+          sourceProfile: getFlag('profile'),
+          rawInput: code,
+          companyPrefixLength: getFlag('prefix-len') ? Number(getFlag('prefix-len')) : undefined,
+        });
+        out(result);
+      } catch (e) {
+        fail(e.message);
+      }
+      break;
+    }
+    case 'db-get': {
+      const [code] = args;
+      if (!code) fail('usage: upc-engine db-get <canonicalUpcA12>');
+      try {
+        out(await getUpcRecord(code));
+      } catch (e) {
+        fail(e.message);
+      }
+      break;
+    }
+    case 'db-list': {
+      const brandIdx = args.indexOf('--brand');
+      const prefixIdx = args.indexOf('--prefix');
+      try {
+        out(await listUpcRecords({
+          brandName: brandIdx >= 0 ? args[brandIdx + 1] : undefined,
+          companyPrefix: prefixIdx >= 0 ? args[prefixIdx + 1] : undefined,
+        }));
+      } catch (e) {
+        fail(e.message);
+      }
+      break;
+    }
     default:
       out({
         usage: [
@@ -148,9 +215,16 @@ try {
           'upc-engine get-active-profile <systemId>',
           'upc-engine list-active-profiles',
           'upc-engine clear-active-profile <systemId>',
+          'upc-engine decompose <code> [companyPrefixLength]',
+          'upc-engine number-systems',
+          'upc-engine db-status',
+          'upc-engine db-record <code> [--brand X] [--product Y] [--profile Z] [--prefix-len N]',
+          'upc-engine db-get <canonicalUpcA12>',
+          'upc-engine db-list [--brand X] [--prefix Y]',
         ],
       });
   }
+  })();
 } catch (err) {
   fail(err?.message ?? String(err));
 }

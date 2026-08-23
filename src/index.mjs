@@ -4,3 +4,5 @@ export * from './batch.mjs';
 export * from './profiles.mjs';
 export * from './detect.mjs';
 export * from './session.mjs';
+export * from './decompose.mjs';
+export * from './db.mjs';

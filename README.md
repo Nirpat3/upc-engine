@@ -101,6 +101,60 @@ upc-engine list-active-profiles
 upc-engine clear-active-profile <systemId>
 ```
 
+## Structural decomposition (`src/decompose.mjs`)
+
+Breaks a canonical UPC-A into its actual GS1 parts: number system digit
+(with its real-world meaning — e.g. `2` = variable-weight/store-scale item,
+`4` = store-internal use, both explicitly flagged as NOT globally unique),
+the 10-digit body, and the check digit (revalidated, never trusted from
+input). If you supply a `companyPrefixLength` (6-10, matching how GS1
+actually issues prefixes per-company), it further splits the body into
+`companyPrefix` and `itemReference`.
+
+**Important honesty note** (see `RESEARCH.md`): GS1 does not publish a
+fixed universal prefix-length table — a company's prefix length depends on
+how many items GS1 assigned them room for, and is only truly knowable by
+looking up that specific prefix. This module never guesses a length
+silently; without one, you get the guaranteed-correct fields only.
+
+`createBrandProfile({ companyPrefix, brandName, companyPrefixLength })`
+builds a durable record so a resolved prefix length doesn't need
+rediscovering — meant to be persisted via the DB layer below.
+
+```
+upc-engine decompose <code> [companyPrefixLength]
+upc-engine number-systems
+```
+
+## UPC database (`src/db.mjs`, Supabase)
+
+Every UPC that runs through the engine can be recorded — canonical form,
+decomposition, brand/product metadata, which scanner profile it was
+decoded from — building a real data structure over time instead of
+one-shot conversions. Talks directly to Supabase's PostgREST REST API via
+`fetch` (no SDK dependency added to the project). Configure via env vars:
+
+```
+SUPABASE_URL=https://<project>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>   # or SUPABASE_KEY
+```
+
+Run `db/schema.sql` in the Supabase SQL editor once to create the
+`upc_records` and `brand_profiles` tables (with an atomic seen-count
+trigger, indexes on brand/prefix, and a check-digit format constraint).
+
+Without those env vars every DB function throws a clear
+`DB_NOT_CONFIGURED` error at call time — the rest of the engine (identify,
+convert, detect, decompose) has zero dependency on Supabase and keeps
+working standalone.
+
+```
+upc-engine db-status
+upc-engine db-record <code> [--brand X] [--product Y] [--profile Z] [--prefix-len N]
+upc-engine db-get <canonicalUpcA12>
+upc-engine db-list [--brand X] [--prefix Y]
+```
+
 ## Known v1 limitations
 
 
