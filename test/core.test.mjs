@@ -54,11 +54,12 @@ test('toCanonical: EAN-13 with leading 0 unwraps to UPC-A', () => {
   assert.equal(result.canonical, '036000291452');
 });
 
-test('toCanonical: EAN-13 not starting with 0 is NON_UPC_A', () => {
-  const result = toCanonical('4006381333931'); // real EAN-13 (non-UPC)
-  assert.equal(result.format, 'NON_UPC_A');
-  assert.equal(result.canonical, null);
+test('toCanonical: EAN-13 not starting with 0 (non-US/Canada, e.g. German GS1 prefix) canonicalizes as EAN_13, not NON_UPC_A', () => {
+  const result = toCanonical('4006381333931'); // real EAN-13, German GS1 prefix (400-440 range)
+  assert.equal(result.format, 'EAN_13');
+  assert.equal(result.canonical, '4006381333931');
 });
+
 
 test('expandUpcE6 / compressUpcA11 are exact inverses for all 4 GS1 patterns', () => {
   // Construct UPC-E codes BY PATTERN (not guessed) so we know ground truth,

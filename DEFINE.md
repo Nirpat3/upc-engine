@@ -87,11 +87,13 @@ We need an engine that:
 
 - GUI. CLI + library only in v1; a thin web/API wrapper can follow once the
   core engine is proven.
-- Non-North-American numbering: EAN-13 codes using Latin American GS1
-  prefixes (Mexico, Central America, South America — see "Regional scope"
-  above) canonicalize and check-digit-validate via the same GS1 algorithm,
-  but UPC-E compression and the UPC number-system-digit semantics table are
-  US/Canada-specific and do not apply to them.
+- UPC-E compression/expansion and the scanner-profile catalog
+  (`profiles/catalog.json`) remain US/Canada-specific: they model UPC-A/
+  UPC-E POS hardware behavior that does not exist for EAN-13-format codes.
+  Latin American EAN-13 identification, canonicalization, check-digit
+  validation, and structural decomposition (country/region, company
+  prefix/item reference) ARE implemented (`src/gs1-country.mjs`,
+  `decomposeEan13`) as of the "Add Latin American EAN-13 support" change.
 - Non-GS1 symbologies beyond EAN-13/GTIN-14 passthrough (Code128, QR, etc.)
 - Live integration into any specific POS (RapidRMS etc.) — that is a follow-on
   once this engine has a stable contract.

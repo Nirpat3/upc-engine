@@ -32,8 +32,9 @@ import { convertBatch, identifyBatch } from '../src/batch.mjs';
 import { listProfiles, getProfile } from '../src/profiles.mjs';
 import { detectProfileFromPairs, detectProfileFromDatabase } from '../src/detect.mjs';
 import { setActiveProfile, getActiveProfile, listActiveProfiles, clearActiveProfile } from '../src/session.mjs';
-import { decomposeUpcA, createBrandProfile, NUMBER_SYSTEM_MEANINGS } from '../src/decompose.mjs';
+import { decomposeUpcA, decomposeEan13, decomposeAny, createBrandProfile, NUMBER_SYSTEM_MEANINGS } from '../src/decompose.mjs';
 import { recordUpc, getUpcRecord, listUpcRecords, isDbConfigured } from '../src/db.mjs';
+import { lookupGs1Country, isLatinAmericanGs1 } from '../src/gs1-country.mjs';
 
 function out(obj) {
   process.stdout.write(JSON.stringify(obj, null, 2) + '\n');
@@ -161,13 +162,21 @@ try {
     }
     case 'decompose': {
       const [code, prefixLenArg] = args;
-      if (!code) fail('usage: upc-engine decompose <canonicalUpcA12> [companyPrefixLength]');
-      const { canonical, format } = toCanonical(code);
-      if (format !== 'UPC_A_12' || !canonical) fail(`"${code}" is not UPC-A representable`);
+      if (!code) fail('usage: upc-engine decompose <code> [companyPrefixLength]');
+      const canonicalResult = toCanonical(code);
+      if (!canonicalResult.canonical) fail(`"${code}" did not canonicalize (format: ${canonicalResult.format})`);
       const opts = prefixLenArg ? { companyPrefixLength: Number(prefixLenArg) } : {};
-      out(decomposeUpcA(canonical, opts));
+      out(decomposeAny(canonicalResult, opts));
       break;
     }
+    case 'gs1-country': {
+      const [code] = args;
+      if (!code) fail('usage: upc-engine gs1-country <code>');
+      const info = lookupGs1Country(code);
+      out(info ?? { prefix: null, country: null, region: null, upcACompatible: null, note: 'No known GS1 prefix range matched this code.' });
+      break;
+    }
+
     case 'number-systems': {
       out(NUMBER_SYSTEM_MEANINGS);
       break;
@@ -248,6 +257,7 @@ try {
           'upc-engine clear-active-profile <systemId>',
           'upc-engine decompose <code> [companyPrefixLength]',
           'upc-engine number-systems',
+          'upc-engine gs1-country <code>',
           'upc-engine db-status',
           'upc-engine db-record <code> [--brand X] [--product Y] [--profile Z] [--prefix-len N]',
           'upc-engine db-get <canonicalUpcA12>',

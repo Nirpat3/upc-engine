@@ -145,6 +145,38 @@ upc-engine decompose <code> [companyPrefixLength]
 upc-engine number-systems
 ```
 
+## Latin American EAN-13 support (`src/gs1-country.mjs`)
+
+`decompose` now routes through `decomposeAny`, which dispatches on the
+canonical format: US/Canada UPC-A codes go to `decomposeUpcA` (number
+system digit semantics), everything else -- Mexico, Central America,
+Caribbean, South America, and non-Americas GS1 members -- goes to
+`decomposeEan13`, which reports the resolved `country`, `region`, and an
+`isLatinAmerican` flag, based on GS1's own published country-prefix
+ranges (verified against the official table; see DEFINE.md "Regional
+scope"). `toCanonical()` was also fixed so a real EAN-13 code that doesn't
+start with a US/Canada leading zero canonicalizes as `format: 'EAN_13'`
+with its own recomputed check digit, instead of being rejected as
+`NON_UPC_A`.
+
+```
+upc-engine decompose <code> [companyPrefixLength]   # routes by format automatically
+upc-engine gs1-country <code>                        # which GS1 country/region issued this code
+```
+
+Example: `upc-engine gs1-country 7501234567893` -> `{"country": "Mexico", "region": "North America", "upcACompatible": false}`.
+
+**What's covered:** check-digit computation/validation (same GS1 algorithm,
+works for any length), company-prefix/item-reference split (same caveat as
+UPC-A: GS1 doesn't publish a universal prefix-length table, so it's
+opt-in via `companyPrefixLength`), and country/region identification for
+every GS1 Member Organization prefix range currently published.
+**What's NOT covered:** UPC-E-style compression (a North-American-only
+feature -- Latin American EAN-13 codes are never "UPC-E compressible"),
+and the scanner-profile catalog in `profiles/catalog.json` (leading-digit
+strip, zero-pad, etc.), which models US/Canada POS hardware behavior and
+intentionally does not apply to EAN-13-format canonical results.
+
 ## UPC database (`src/db.mjs`, Supabase)
 
 Every UPC that runs through the engine can be recorded — canonical form,

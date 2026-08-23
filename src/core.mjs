@@ -182,7 +182,7 @@ export function toCanonical(code) {
       return finishUpcA(digits.slice(0, 11));
     case 'EAN_13':
       if (digits[0] === '0') return finishUpcA(digits.slice(1, 12));
-      return { format: 'NON_UPC_A', canonical: null, source: digits };
+      return finishEan13(digits.slice(0, 12));
     case 'GTIN_14':
       if (digits.slice(0, 2) === '00') return finishUpcA(digits.slice(2, 13));
       return { format: 'NON_UPC_A', canonical: null, source: digits };
@@ -196,3 +196,17 @@ function finishUpcA(payload11) {
   const canonical = payload11 + check;
   return { format: 'UPC_A_12', canonical, source: payload11 };
 }
+
+/**
+ * Canonicalize a non-US/Canada EAN-13 (Latin American, European, etc.):
+ * recompute the check digit against the 12-digit payload (never trust the
+ * input's), same GS1 algorithm as UPC-A -- just one digit wider. Returned
+ * as format 'EAN_13' (not force-fit into UPC-A/UPC-E, which don't apply
+ * outside the US/Canada numbering convention -- see gs1-country.mjs).
+ */
+function finishEan13(payload12) {
+  const check = computeCheckDigit(payload12);
+  const canonical = payload12 + check;
+  return { format: 'EAN_13', canonical, source: payload12 };
+}
+
