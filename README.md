@@ -20,7 +20,7 @@ codes. See DEFINE.md "Regional scope" for the full prefix breakdown.
 
 See `DEFINE.md` for the problem statement and acceptance criteria, and
 `RESEARCH.md` for the researched catalog of scanner-configurable variables
-this engine models.
+this engine models. See `DEVELOPER_GUIDE.md` for install/architecture/batch-mapping walkthroughs with verified live command output.
 
 **Persistence is opt-in.** Identify, convert, decompose, detect, and
 profile management all work standalone with zero setup and zero external
